@@ -1,0 +1,48 @@
+name: Build macOS DMG
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Build Dependencies
+        run: npm install
+
+      - name: Package macOS Universal Electron App (Apple Silicon & Intel)
+        run: |
+          npx @electron/packager . Planck-Stealth --platform=darwin --arch=universal --out=dist --overwrite
+
+      - name: Create Native macOS DMG with Applications Symlink
+        run: |
+          APP_PATH=$(find dist -name "Planck-Stealth.app" -type d | head -n 1)
+          echo "Found app at: $APP_PATH"
+          mkdir -p dmg_root
+          cp -R "$APP_PATH" dmg_root/
+          ln -s /Applications dmg_root/Applications
+          hdiutil create -volname "Planck-Stealth" -srcfolder dmg_root -ov -format UDZO dist/Planck-Stealth-Mac.dmg
+          ls -lh dist/Planck-Stealth-Mac.dmg
+
+      - name: Upload DMG to GitHub Release v1.0.0
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          files: dist/Planck-Stealth-Mac.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

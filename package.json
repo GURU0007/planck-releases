@@ -1,0 +1,11 @@
+{
+  "name": "planck-stealth",
+  "productName": "Planck-Stealth",
+  "version": "1.0.0",
+  "description": "Planck.ai Stealth Copilot",
+  "main": "stealth-overlay.js",
+  "devDependencies": {
+    "@electron/packager": "^20.3.0",
+    "electron": "^45.3.2"
+  }
+}
