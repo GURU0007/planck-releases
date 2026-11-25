@@ -1,4 +1,4 @@
-name: Build macOS & Windows Stealth Desktop Apps
+name: Build macOS & Windows Desktop Apps
 
 on:
   push:
@@ -26,24 +26,24 @@ jobs:
 
       - name: Package macOS Universal Electron App (Apple Silicon & Intel)
         run: |
-          npx @electron/packager . Planck-Stealth --platform=darwin --arch=universal --out=dist --overwrite
+          npx @electron/packager . Planck --platform=darwin --arch=universal --out=dist --overwrite
 
       - name: Create Native macOS DMG with Applications Symlink
         run: |
-          APP_PATH=$(find dist -name "Planck-Stealth.app" -type d | head -n 1)
+          APP_PATH=$(find dist -name "Planck.app" -type d | head -n 1)
           echo "Found app at: $APP_PATH"
           mkdir -p dmg_root
           cp -R "$APP_PATH" dmg_root/
           ln -s /Applications dmg_root/Applications
-          hdiutil create -volname "Planck-Stealth" -srcfolder dmg_root -ov -format UDZO dist/Planck-Stealth-Mac.dmg
-          ls -lh dist/Planck-Stealth-Mac.dmg
+          hdiutil create -volname "Planck" -srcfolder dmg_root -ov -format UDZO dist/Planck-Mac.dmg
+          ls -lh dist/Planck-Mac.dmg
 
       - name: Upload DMG to GitHub Release v1.0.0
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload v1.0.0 dist/Planck-Stealth-Mac.dmg --clobber
+          gh release upload v1.0.0 dist/Planck-Mac.dmg --clobber
 
   build-windows:
     runs-on: windows-latest
@@ -64,7 +64,7 @@ jobs:
 
       - name: Package Windows x64 App
         run: |
-          npx @electron/packager . Planck-Stealth --platform=win32 --arch=x64 --out=dist --overwrite
+          npx @electron/packager . Planck --platform=win32 --arch=x64 --out=dist --overwrite --win32metadata.ProductName="Planck Assistant" --win32metadata.FileDescription="Planck Assistant" --win32metadata.CompanyName="Planck.ai"
 
       - name: Install Inno Setup
         shell: pwsh
@@ -75,13 +75,26 @@ jobs:
         shell: pwsh
         run: |
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss
-          Get-Item dist/Planck-Stealth-Setup.exe
+          Get-Item dist/Planck-Setup.exe
 
       - name: Create Windows ZIP Archive
         shell: pwsh
         run: |
-          Compress-Archive -Path dist/Planck-Stealth-win32-x64/* -DestinationPath dist/Planck-Stealth-Windows.zip -Force
-          Get-Item dist/Planck-Stealth-Windows.zip
+          Compress-Archive -Path dist/Planck-win32-x64/* -DestinationPath dist/Planck-Windows.zip -Force
+          Get-Item dist/Planck-Windows.zip
+
+      - name: Build 1-Click Silent Background Executable (Planck.exe)
+        shell: pwsh
+        run: |
+          & "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /target:winexe /optimize+ /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll /out:dist\LauncherStub.exe Launcher.cs
+          cmd.exe /c copy /b "dist\LauncherStub.exe" + "dist\Planck-Windows.zip" "dist\Planck.exe"
+          Get-Item dist/Planck.exe
+
+      - name: Prepare Backward-Compatible File Copies
+        shell: pwsh
+        run: |
+          Copy-Item dist/Planck-Setup.exe dist/Planck-Stealth-Setup.exe
+          Copy-Item dist/Planck-Windows.zip dist/Planck-Stealth-Windows.zip
 
       - name: Upload Windows Executable and ZIP to GitHub Release v1.0.0
         shell: pwsh
@@ -89,4 +102,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload v1.0.0 dist/Planck-Stealth-Setup.exe dist/Planck-Stealth-Windows.zip --clobber
+          gh release upload v1.0.0 dist/Planck.exe dist/Planck-Setup.exe dist/Planck-Windows.zip dist/Planck-Stealth-Setup.exe dist/Planck-Stealth-Windows.zip --clobber

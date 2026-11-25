@@ -1,8 +1,8 @@
 {
-  "name": "planck-stealth",
-  "productName": "Planck-Stealth",
+  "name": "planck",
+  "productName": "Planck",
   "version": "1.0.0",
-  "description": "Planck.ai Stealth Copilot",
+  "description": "Planck Assistant",
   "author": "Planck.ai",
   "main": "stealth-overlay.js",
   "devDependencies": {
