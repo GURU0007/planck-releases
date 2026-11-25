@@ -32,7 +32,6 @@ function createStealthWindow() {
     title: 'Desktop Window Manager Auxiliary',
     // Win32 WS_EX_TOOLWINDOW: OS-level exclusion from Windows Taskbar & Alt+Tab
     type: process.platform === 'win32' ? 'toolbar' : 'normal',
-    focusable: false, // ZERO FOCUS LOSS: OS will NOT activate or steal focus from Chrome / IDE on mouse click
     skipTaskbar: true, // Invisible on taskbar
     hiddenInMissionControl: true, // Invisible in macOS Mission Control (Swipe-Up)
     icon: fs.existsSync(path.join(__dirname, 'icon.ico')) ? path.join(__dirname, 'icon.ico') : undefined,
@@ -96,7 +95,7 @@ function createStealthWindow() {
       mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
       mainWindow.setAlwaysOnTop(true, 'floating', 1);
     }
-    mainWindow.showInactive();
+    mainWindow.show();
   });
 
   // =========================================================================
@@ -164,14 +163,14 @@ function createStealthWindow() {
       mainWindow.hide();
       console.log('[Stealth] Overlay hidden');
     } else {
-      mainWindow.showInactive();
+      mainWindow.show();
       mainWindow.setSkipTaskbar(true);
-      console.log('[Stealth] Overlay restored (non-activating)');
+      console.log('[Stealth] Overlay restored');
     }
   });
 
   // Global Focus Toggle: Ctrl+Shift+F (Toggles Non-Activating Ghost Mode vs Interactive Typing Mode)
-  let isNonActivating = true;
+  let isNonActivating = false;
   globalShortcut.register('CommandOrControl+Shift+F', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       isNonActivating = !isNonActivating;
