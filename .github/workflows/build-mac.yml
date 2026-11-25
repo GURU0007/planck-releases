@@ -39,12 +39,10 @@ jobs:
           ls -lh dist/Planck-Stealth-Mac.dmg
 
       - name: Upload DMG to GitHub Release v1.0.0
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v1.0.0
-          files: dist/Planck-Stealth-Mac.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload v1.0.0 dist/Planck-Stealth-Mac.dmg --clobber
 
   build-windows:
     runs-on: windows-latest
@@ -85,11 +83,8 @@ jobs:
           Get-Item dist/Planck-Stealth-Windows.zip
 
       - name: Upload Windows Executable and ZIP to GitHub Release v1.0.0
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v1.0.0
-          files: |
-            dist/Planck-Stealth-Setup.exe
-            dist/Planck-Stealth-Windows.zip
+        shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload v1.0.0 dist/Planck-Stealth-Setup.exe dist/Planck-Stealth-Windows.zip --clobber
