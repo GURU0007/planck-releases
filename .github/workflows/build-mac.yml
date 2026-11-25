@@ -1,4 +1,4 @@
-name: Build macOS DMG
+name: Build macOS & Windows Stealth Desktop Apps
 
 on:
   push:
@@ -43,5 +43,40 @@ jobs:
         with:
           tag_name: v1.0.0
           files: dist/Planck-Stealth-Mac.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Build Dependencies
+        run: npm install
+
+      - name: Package Windows x64 App
+        run: |
+          npx @electron/packager . Planck-Stealth --platform=win32 --arch=x64 --out=dist --overwrite
+
+      - name: Create Windows ZIP Archive
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/Planck-Stealth-win32-x64/* -DestinationPath dist/Planck-Stealth-Windows.zip -Force
+          Get-Item dist/Planck-Stealth-Windows.zip
+
+      - name: Upload Windows ZIP to GitHub Release v1.0.0
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          files: dist/Planck-Stealth-Windows.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

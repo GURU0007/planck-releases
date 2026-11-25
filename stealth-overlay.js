@@ -31,7 +31,9 @@ function createStealthWindow() {
     title: 'Desktop Window Manager Auxiliary',
     // Win32 WS_EX_TOOLWINDOW: OS-level exclusion from Windows Taskbar & Alt+Tab
     type: process.platform === 'win32' ? 'toolbar' : 'normal',
+    focusable: false, // ZERO FOCUS LOSS: OS will NOT activate or steal focus from Chrome / IDE on mouse click
     skipTaskbar: true, // Invisible on taskbar
+    hiddenInMissionControl: true, // Invisible in macOS Mission Control (Swipe-Up)
     icon: path.join(__dirname, 'icon.ico'),
     hasShadow: true,
     resizable: true,
@@ -86,10 +88,14 @@ function createStealthWindow() {
     `);
   });
 
-  // Explicitly enforce taskbar invisibility on Windows
+  // Explicitly enforce taskbar invisibility on Windows & show without stealing focus
   mainWindow.once('ready-to-show', () => {
     mainWindow.setSkipTaskbar(true);
-    mainWindow.show();
+    if (process.platform === 'darwin') {
+      mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+      mainWindow.setAlwaysOnTop(true, 'floating', 1);
+    }
+    mainWindow.showInactive();
   });
 
   // =========================================================================
@@ -150,9 +156,26 @@ function createStealthWindow() {
       mainWindow.hide();
       console.log('[Stealth] Overlay hidden');
     } else {
-      mainWindow.show();
+      mainWindow.showInactive();
       mainWindow.setSkipTaskbar(true);
-      console.log('[Stealth] Overlay restored');
+      console.log('[Stealth] Overlay restored (non-activating)');
+    }
+  });
+
+  // Global Focus Toggle: Ctrl+Shift+F (Toggles Non-Activating Ghost Mode vs Interactive Typing Mode)
+  let isNonActivating = true;
+  globalShortcut.register('CommandOrControl+Shift+F', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      isNonActivating = !isNonActivating;
+      mainWindow.setFocusable(!isNonActivating);
+      console.log(`[Stealth] Focusable Mode: ${!isNonActivating ? 'ENABLED (Typing mode)' : 'DISABLED (Zero-Focus-Loss Ghost Mode)'}`);
+      mainWindow.webContents.executeJavaScript(`
+        if (typeof window.showStealthToast === 'function') {
+          window.showStealthToast('${isNonActivating ? '🛡️ Ghost Mode: Non-Activating (Zero Focus Loss)' : '⌨️ Input Mode: Focusable (Typing Allowed)'}');
+        } else {
+          console.log('[Stealth HUD] Non-Activating: ${isNonActivating}');
+        }
+      `);
     }
   });
 
@@ -170,12 +193,60 @@ function createStealthWindow() {
     }
   });
 
+  // Global Click-Through Toggle: Ctrl+Shift+X (Allows clicking through the overlay directly into LeetCode / IDE)
+  let isClickThrough = false;
+  globalShortcut.register('CommandOrControl+Shift+X', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      isClickThrough = !isClickThrough;
+      mainWindow.setIgnoreMouseEvents(isClickThrough, { forward: true });
+      console.log(`[Stealth] Click-through mode: ${isClickThrough ? 'ENABLED (Clicks pass through)' : 'DISABLED (Interactive)'}`);
+      mainWindow.webContents.executeJavaScript(`
+        if (typeof window.showStealthToast === 'function') {
+          window.showStealthToast('${isClickThrough ? '🛡️ Click-Through Mode ON (Clicks pass through to IDE)' : '🖱️ Interactive Mode ON'}');
+        } else {
+          console.log('[Stealth HUD] Click-through: ${isClickThrough}');
+        }
+      `);
+    }
+  });
+
+  // Dynamic Opacity Cycle Hotkeys: Ctrl+Shift+Up (Brighter) / Ctrl+Shift+Down (More Transparent)
+  let currentStealthOpacity = 1.0;
+  globalShortcut.register('CommandOrControl+Shift+Up', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      currentStealthOpacity = Math.min(1.0, Math.round((currentStealthOpacity + 0.15) * 100) / 100);
+      mainWindow.setOpacity(currentStealthOpacity);
+      console.log(`[Stealth] Opacity increased to: ${Math.round(currentStealthOpacity * 100)}%`);
+      mainWindow.webContents.executeJavaScript(`
+        if (typeof window.showStealthToast === 'function') {
+          window.showStealthToast('👁️ Overlay Opacity: ${Math.round(currentStealthOpacity * 100)}%');
+        }
+      `);
+    }
+  });
+
+  globalShortcut.register('CommandOrControl+Shift+Down', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      currentStealthOpacity = Math.max(0.20, Math.round((currentStealthOpacity - 0.15) * 100) / 100);
+      mainWindow.setOpacity(currentStealthOpacity);
+      console.log(`[Stealth] Opacity decreased to: ${Math.round(currentStealthOpacity * 100)}%`);
+      mainWindow.webContents.executeJavaScript(`
+        if (typeof window.showStealthToast === 'function') {
+          window.showStealthToast('👁️ Overlay Opacity: ${Math.round(currentStealthOpacity * 100)}%');
+        }
+      `);
+    }
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 }
 
 app.whenReady().then(() => {
+  if (process.platform === 'darwin' && app.dock) {
+    app.dock.hide(); // Completely hidden from macOS Dock and Cmd+Tab app switcher
+  }
   const stealthSession = session.fromPartition('persist:planck-stealth');
 
   // Purge any legacy service workers and stale offline cache traps that cause net::ERR_CACHE_MISS
