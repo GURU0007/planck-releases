@@ -63,15 +63,25 @@ jobs:
       - name: Install Build Dependencies
         run: npm install
 
-      - name: Build 1-Click Windows NSIS Installer (.exe)
+      - name: Package Windows x64 App
         run: |
-          npx electron-builder --win --x64
+          npx @electron/packager . Planck-Stealth --platform=win32 --arch=x64 --out=dist --overwrite
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+
+      - name: Compile 1-Click Setup.exe with Inno Setup
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup.iss
+          Get-Item dist/Planck-Stealth-Setup.exe
 
       - name: Create Windows ZIP Archive
         shell: pwsh
         run: |
-          Compress-Archive -Path dist/win-unpacked/* -DestinationPath dist/Planck-Stealth-Windows.zip -Force
-          Get-Item dist/Planck-Stealth-Setup.exe
+          Compress-Archive -Path dist/Planck-Stealth-win32-x64/* -DestinationPath dist/Planck-Stealth-Windows.zip -Force
           Get-Item dist/Planck-Stealth-Windows.zip
 
       - name: Upload Windows Executable and ZIP to GitHub Release v1.0.0
