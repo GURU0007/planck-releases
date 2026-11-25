@@ -63,22 +63,16 @@ jobs:
       - name: Install Build Dependencies
         run: npm install
 
-      - name: Package Windows x64 App
+      - name: Build 1-Click Windows NSIS Installer (.exe)
         run: |
-          npx @electron/packager . Planck-Stealth --platform=win32 --arch=x64 --out=dist --overwrite
+          npx electron-builder --win --x64
 
       - name: Create Windows ZIP Archive
         shell: pwsh
         run: |
-          Compress-Archive -Path dist/Planck-Stealth-win32-x64/* -DestinationPath dist/Planck-Stealth-Windows.zip -Force
-          Get-Item dist/Planck-Stealth-Windows.zip
-
-      - name: Build 1-Click Windows Executable (.exe)
-        shell: pwsh
-        run: |
-          & "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /target:winexe /optimize+ /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll /out:dist\LauncherStub.exe Launcher.cs
-          cmd.exe /c copy /b "dist\LauncherStub.exe" + "dist\Planck-Stealth-Windows.zip" "dist\Planck-Stealth-Setup.exe"
+          Compress-Archive -Path dist/win-unpacked/* -DestinationPath dist/Planck-Stealth-Windows.zip -Force
           Get-Item dist/Planck-Stealth-Setup.exe
+          Get-Item dist/Planck-Stealth-Windows.zip
 
       - name: Upload Windows Executable and ZIP to GitHub Release v1.0.0
         uses: softprops/action-gh-release@v2

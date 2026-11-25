@@ -3,9 +3,28 @@
   "productName": "Planck-Stealth",
   "version": "1.0.0",
   "description": "Planck.ai Stealth Copilot",
+  "author": "Planck.ai",
   "main": "stealth-overlay.js",
+  "build": {
+    "appId": "com.planck.stealth",
+    "electronVersion": "45.3.2",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "artifactName": "Planck-Stealth-Setup.${ext}",
+      "runAfterFinish": true
+    }
+  },
   "devDependencies": {
     "@electron/packager": "^20.3.0",
-    "electron": "^45.3.2"
+    "electron": "45.3.2",
+    "electron-builder": "^26.18.0"
   }
 }

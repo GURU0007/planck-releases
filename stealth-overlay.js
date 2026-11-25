@@ -5,6 +5,7 @@
 const { app, BrowserWindow, screen, globalShortcut, session, desktopCapturer } = require('electron');
 const path = require('path');
 const http = require('http');
+const fs = require('fs');
 
 // Prevent Chromium from throttling audio and background timers in the overlay
 app.commandLine.appendSwitch('disable-background-timer-throttling');
@@ -34,7 +35,7 @@ function createStealthWindow() {
     focusable: false, // ZERO FOCUS LOSS: OS will NOT activate or steal focus from Chrome / IDE on mouse click
     skipTaskbar: true, // Invisible on taskbar
     hiddenInMissionControl: true, // Invisible in macOS Mission Control (Swipe-Up)
-    icon: path.join(__dirname, 'icon.ico'),
+    icon: fs.existsSync(path.join(__dirname, 'icon.ico')) ? path.join(__dirname, 'icon.ico') : undefined,
     hasShadow: true,
     resizable: true,
     minimizable: true,
@@ -119,7 +120,10 @@ function createStealthWindow() {
     console.log('[Stealth Overlay] Using custom PLANCK_URL:', process.env.PLANCK_URL);
     mainWindow.loadURL(process.env.PLANCK_URL);
   } else {
+    let resolved = false;
     const probeReq = http.get('http://localhost:3000/api/status', (res) => {
+      if (resolved) return;
+      resolved = true;
       if (res.statusCode === 200) {
         console.log('[Stealth Overlay] Connected to Local Server (0ms latency):', localUrl);
         mainWindow.loadURL(localUrl);
@@ -129,10 +133,14 @@ function createStealthWindow() {
       }
     });
     probeReq.on('error', () => {
+      if (resolved) return;
+      resolved = true;
       console.log('[Stealth Overlay] Connected to Cloud Server:', renderUrl);
       mainWindow.loadURL(renderUrl);
     });
     probeReq.setTimeout(600, () => {
+      if (resolved) return;
+      resolved = true;
       probeReq.destroy();
       console.log('[Stealth Overlay] Connected to Cloud Server:', renderUrl);
       mainWindow.loadURL(renderUrl);

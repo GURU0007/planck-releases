@@ -1,0 +1,6 @@
+node_modules/
+dist/
+*.exe
+*.log
+icon_old.ico
+package-lock.json
